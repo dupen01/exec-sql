@@ -1,4 +1,4 @@
-package com.shutantech.flink.tools;
+package com.dupeng.flink.sql;
 
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.utils.MultipleParameterTool;

@@ -15,9 +15,11 @@ from pyspark.sql import SparkSession
 
 sql_separator_regex = r';\s*$|;(?=\s*\n)|;(?=\s*--)'
 
-# 获取 spark 执行环境
+# 获取 spark 执行环境(测试使用，使用spark-submit提交作业时需要删掉或注释)
+spark_home = "/Users/pengdu/Library/app/spark-3.4.1-bin-hadoop3"
 if not os.environ.get('SPARK_HOME'):
-    os.environ.setdefault('SPARK_HOME', '/Users/pengdu/Library/app/spark-3.4.1-bin-hadoop3')
+    os.environ.setdefault('SPARK_HOME', spark_home)
+
 spark = SparkSession.builder.enableHiveSupport().getOrCreate()
 
 

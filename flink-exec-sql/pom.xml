@@ -111,11 +111,11 @@
                             <classifier>main</classifier>
                             <archive>
                                 <manifestEntries>
-                                    <program-class>com.shutantech.flink.tools.ExecSQLFile4</program-class>
+                                    <program-class>com.dupeng.flink.sql.ExecSQLFile4</program-class>
                                 </manifestEntries>
                             </archive>
                             <includes>
-                                <include>com/shutantech/flink/tools/*</include>
+                                <include>com/dupeng/flink/sql/*</include>
                                 <include>META-INF/LICENSE</include>
                                 <include>META-INF/NOTICE</include>
                             </includes>
