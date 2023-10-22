@@ -34,12 +34,12 @@
         </dependency>
 
         <!-- Flink Core -->
-        <!-- <dependency> -->
-        <!--     <groupId>org.apache.flink</groupId> -->
-        <!--     <artifactId>flink-streaming-java</artifactId> -->
-        <!--     <version>${flink-version}</version> -->
-        <!--     <scope>provided</scope> -->
-        <!-- </dependency> -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-streaming-java</artifactId>
+            <version>${flink-version}</version>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-table-planner-loader</artifactId>

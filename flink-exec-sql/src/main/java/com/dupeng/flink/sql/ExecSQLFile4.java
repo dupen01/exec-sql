@@ -44,7 +44,7 @@ public class ExecSQLFile4 {
      */
     private static String[] parseSqlFile(String filePath, Collection<String> kv) throws Exception {
         ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-        env.getConfiguration().setString("pipeline.name", "read-sql-from-file");
+        env.getConfiguration().setString("pipeline.name", "read-sql-text-from-file");
         // 必须设置并行度为1，否则读取的文件是乱序！
         env.setParallelism(1);
         List<String> textLineList;
@@ -110,6 +110,7 @@ public class ExecSQLFile4 {
         int sqlId = 0;
         for (String sql : sqlStmts) {
             sql = sql.replaceAll("--.*", "").trim();
+            // sql = sql.replaceAll("^/\\*.*?\\*/$","");
             if (sql.isBlank()){
                 continue;
             }
@@ -144,7 +145,7 @@ public class ExecSQLFile4 {
                 statementSetFlag = true;
             } else {
                 sqlId += 1;
-                LOGGER.warn("[{}]-------------- SQL STATEMENT -------------\n{}", sqlId, sql);
+                LOGGER.warn("-------------- [SQL-{}] -------------\n{}\n-------------- SQL end -------------", sqlId, sql);
                 tenv.executeSql(sql).print();
             }
         }

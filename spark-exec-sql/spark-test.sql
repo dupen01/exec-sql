@@ -1,3 +1,10 @@
+/**
+  ./bin/spark-submit \
+  /Users/pengdu/IdeaProjects/personal-project/exec-sql/spark-exec-sql/exec_spark_sql_file.py \
+  -f /Users/pengdu/IdeaProjects/personal-project/exec-sql/spark-exec-sql/spark-test.sql \
+  -df dt=2023-10-22
+ */
+
 -- 注释测试
 SELECT ';' as a;
 /* This is a comment
@@ -35,3 +42,7 @@ show databases ;
 use paimon.test;
 show tables;
 select * from paimon.test.t2;
+
+/*
+ end
+ */

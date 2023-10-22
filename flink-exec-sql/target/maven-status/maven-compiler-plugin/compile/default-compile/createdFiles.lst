@@ -1,5 +1,4 @@
-com/shutantech/flink/exec/SQLParser.class
-com/shutantech/flink/tools/ExecSQLFile4.class
-com/shutantech/flink/tools/ExecSQLFile2.class
-com/shutantech/flink/tools/ExecSQLFile.class
-com/shutantech/flink/tools/ExecSQLFile3.class
+com/dupeng/flink/sql/ExecSQLFile3.class
+com/dupeng/flink/sql/ExecSQLFile.class
+com/dupeng/flink/sql/ExecSQLFile2.class
+com/dupeng/flink/sql/ExecSQLFile4.class

@@ -9,7 +9,6 @@ from pyspark import SparkContext
 import argparse
 import re
 import os
-import logging
 from typing import List
 from pyspark.sql import SparkSession
 
@@ -22,15 +21,27 @@ if not os.environ.get('SPARK_HOME'):
 
 spark = SparkSession.builder.enableHiveSupport().getOrCreate()
 
+print("""
+                       ____                   _                _ 
+   _____  _____  ___  / ___| _ __   __ _ _ __| | __  ___  __ _| |
+  / _ \ \/ / _ \/ __| \___ \| '_ \ / _` | '__| |/ / / __|/ _` | |
+ |  __/>  <  __/ (__   ___) | |_) | (_| | |  |   <  \__ \ (_| | |
+  \___/_/\_\___|\___| |____/| .__/ \__,_|_|  |_|\_\ |___/\__, |_|
+                            |_|                             |_|  
+""")
 
-# 解析SQL文本
-def parse_sql_text(file_path: str, kv=None) -> List[str]:
+def get_sql_text_from_file(file_path):
     if os.path.exists(file_path):
         print("将从本地文件系统读取文件...")
         sql_text = open(file_path, 'r').read()
     else:
         print("将从远程文件系统读取文件...")
         sql_text = "\n".join(SparkContext().textFile(file_path, 1).collect())
+    return sql_text
+
+
+# 解析SQL文本
+def parse_sql_text(sql_text: str, kv=None) -> List[str]:
     sql_line_lst = sql_text.splitlines()
     for line in sql_line_lst:
         line = re.sub(r'\s+', ' ', line)
@@ -60,23 +71,31 @@ def exec_sql_text(sql_stmts):
     sql_id = 0
     for sql in sql_stmts:
         sql = re.sub(r'--.*', '', sql).strip()
+        sql = re.sub(r'^/\*.*?\*/$', '', sql, flags=re.M | re.S).strip( )
         if sql == '' or sql.upper().startswith("SET VAR:"):
             continue
         else:
             sql_id += 1
-            logging.warning(f"-------------- [SQL-{sql_id}] -------------\n{sql};")
+            print(
+                f"-------------- [SQL-{sql_id} start] -------------\n{sql}\n"
+                f"-------------- [SQL-{sql_id}   end] -------------")
             spark.sql(sql).show()
     spark.stop()
 
 
 def main():
-    parser = argparse.ArgumentParser(description="执行Flink SQL 文件或文本")
-    parser.add_argument("--file", "-f", dest='sql_file', help='传入SQL文件路径')
-    parser.add_argument('--define', '-df', dest='kv', action='append',
-                        help='设置sql文本内的变量值，如 -df dt=20220101 -df A=B')
+    parser = argparse.ArgumentParser(description="执行 SPARK SQL 文件或文本")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-f", dest='sql_file', help='SQl from files')
+    group.add_argument("-e", dest='sql_text', help='SQL from command line')
+    parser.add_argument('--define', '-d', dest='kv', action='append',
+                        help='设置sql文本内的变量值，如 -d A=B or --define A=B')
     args = parser.parse_args()
     if args.sql_file:
-        exec_sql_text(parse_sql_text(args.sql_file, args.kv))
+        sql_text = get_sql_text_from_file(args.sql_file)
+        exec_sql_text(parse_sql_text(sql_text, args.kv))
+    elif args.sql_text:
+        exec_sql_text(parse_sql_text(args.sql_text, args.kv))
     else:
         raise ValueError('SQL FILE NOT FOUND')
 
