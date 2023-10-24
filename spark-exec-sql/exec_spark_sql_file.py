@@ -14,10 +14,9 @@ from pyspark.sql import SparkSession
 
 sql_separator_regex = r';\s*$|;(?=\s*\n)|;(?=\s*--)'
 
-# 获取 spark 执行环境(测试使用，使用spark-submit提交作业时需要删掉或注释)
-spark_home = "/Users/pengdu/Library/app/spark-3.4.1-bin-hadoop3"
+# 获取 spark 执行环境(测试使用，使用spark-submit提交作业时需要删掉或注释掉)
 if not os.environ.get('SPARK_HOME'):
-    os.environ.setdefault('SPARK_HOME', spark_home)
+    os.environ.setdefault('SPARK_HOME', "/Users/pengdu/Library/app/spark-3.4.1-bin-hadoop3")
 
 spark = SparkSession.builder.enableHiveSupport().getOrCreate()
 
@@ -41,7 +40,7 @@ def get_sql_text_from_file(file_path):
 
 
 # 解析SQL文本
-def parse_sql_text(sql_text: str, kv=None) -> List[str]:
+def parse_sql_text(sql_text, kv=None) -> List[str]:
     sql_line_lst = sql_text.splitlines()
     for line in sql_line_lst:
         line = re.sub(r'\s+', ' ', line)
