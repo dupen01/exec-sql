@@ -20,7 +20,7 @@ select 'hello' /*hello world*/;
 set var:a  = b; -- hie
 -- add jar '/sss.jar'; -- jarjar
 set var:c  = b; -- hie
-set var:dt  = 2023-09-23; -- hie
+-- set var:dt  = 2023-09-23; -- hie
 
 
 select now(), '${dt}';
