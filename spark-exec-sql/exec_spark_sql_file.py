@@ -1,4 +1,3 @@
-from pyspark import SparkContext
 import argparse
 import re
 import os
@@ -52,8 +51,6 @@ def parse_sql_text(sql_text, kv=None) -> List[str]:
             var_value = i.split('=')[1]
             sql_text = sql_text.replace('${' + f'{var_key}' + '}', str(var_value))
             print(f"外部参数定义的变量值: {var_key}={var_value}")
-    # 删除文本内的段注释内容，如 /* 段注释 */
-    # sql_text = re.sub(r'/\*.*?\*/', '', sql_text, flags=re.M | re.S)
     sql_lines = sql_text.splitlines()
     sql_stmts = []
     for line in sql_lines:
@@ -77,7 +74,7 @@ def exec_sql_text(sql_stmts):
     spark.stop()
 
 
-def main():
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="执行 SPARK SQL 文件或文本")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-f", dest='sql_file', help='SQl from files')
@@ -86,13 +83,9 @@ def main():
                         help='设置sql文本内的变量值，如 -d A=B or --define A=B')
     args = parser.parse_args()
     if args.sql_file:
-        sql_text = get_sql_text_from_file(args.sql_file)
-        exec_sql_text(parse_sql_text(sql_text, args.kv))
+        parsed_sql_text = get_sql_text_from_file(args.sql_file)
+        exec_sql_text(parse_sql_text(parsed_sql_text, args.kv))
     elif args.sql_text:
         exec_sql_text(parse_sql_text(args.sql_text, args.kv))
     else:
         raise ValueError('SQL FILE NOT FOUND')
-
-
-if __name__ == '__main__':
-    main()
