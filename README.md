@@ -35,6 +35,12 @@ set 'state.checkpoints.dir' =  'hdfs://ns1/ckps';
 ```
 
 # spark-exec
+
+理论上可以支持spark所有支持的文件系统
+如 file://  hdfs://  s3:// s3a:// oss:// 等
+是 spark-sql 脚本的增强版（原生脚本仅支持从本地 file:// 获取sql文件且只能使用`client`模式）
+本脚本支持从远程文件系统获取要执行的SQL文件，可以使用`cluster`模式提交作业
+
 ## 1. 定义文本内的变量：
 使用 `set var:key = value ;`
 ```sql

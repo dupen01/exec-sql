@@ -1,10 +1,3 @@
-"""
-理论上可以支持spark所有支持的文件系统
-如 file://  hdfs://  s3:// s3a:// oss:// 等
-是 spark-sql 脚本的增强版（原生脚本仅支持从本地 file:// 获取sql文件且只能使用`client`模式）
-本脚本支持从远程文件系统获取要执行的SQL文件，可以使用`cluster`模式提交作业
-"""
-
 from pyspark import SparkContext
 import argparse
 import re
@@ -29,13 +22,15 @@ print("""
                             |_|                             |_|  
 """)
 
+
 def get_sql_text_from_file(file_path):
+    schema = file_path.split("//")[0][:-1]
     if os.path.exists(file_path):
         print("将从本地文件系统读取文件...")
         sql_text = open(file_path, 'r').read()
     else:
-        print("将从远程文件系统读取文件...")
-        sql_text = "\n".join(SparkContext().textFile(file_path, 1).collect())
+        print(f"将从远程文件系统 '{schema}' 读取文件...")
+        sql_text = "\n".join(spark.sparkContext.textFile(file_path, 1).collect())
     return sql_text
 
 
@@ -70,7 +65,7 @@ def exec_sql_text(sql_stmts):
     sql_id = 0
     for sql in sql_stmts:
         sql = re.sub(r'--.*', '', sql).strip()
-        sql = re.sub(r'^/\*.*?\*/$', '', sql, flags=re.M | re.S).strip( )
+        sql = re.sub(r'^/\*.*?\*/$', '', sql, flags=re.M | re.S).strip()
         if sql == '' or sql.upper().startswith("SET VAR:"):
             continue
         else:
