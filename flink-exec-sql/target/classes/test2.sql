@@ -1,7 +1,3 @@
-
-
-
-
 set 'pipeline.name' = 'flink-ck-on-s3-demo';
 set 'execution.checkpointing.interval' = '10s';
 set 'state.backend' = 'hashmap';
@@ -27,10 +23,10 @@ create table t2 (
     name string,
     ts timestamp
 )with(
-    'connector' = 'filesystem',           -- 必选：指定连接器类型
+  'connector' = 'filesystem',           -- 必选：指定连接器类型
   'path' = 's3a://flink/tmp/t2',  -- 必选,指定路径
   'format' = 'json',
-    'auto-compaction' = 'true'
+  'auto-compaction' = 'true'
 );
 
 insert into t2

@@ -41,7 +41,9 @@ set spark.sql.catalog.paimon.warehouse=s3a://lakehouse/paimon/warehouse;
 show databases ;
 use paimon.test;
 show tables;
-select * from paimon.test.t2;
+select
+    *
+from paimon.test.t2;
 
 /*
  end

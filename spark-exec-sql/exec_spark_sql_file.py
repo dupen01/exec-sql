@@ -23,7 +23,7 @@ print("""
 
 
 def get_sql_text_from_file(file_path):
-    schema = file_path.split("//")[0][:-1]
+    schema = file_path.split("://")[0]
     if os.path.exists(file_path):
         print("将从本地文件系统读取文件...")
         sql_text = open(file_path, 'r').read()
