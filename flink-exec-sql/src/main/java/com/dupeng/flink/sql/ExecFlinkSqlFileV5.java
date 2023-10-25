@@ -1,7 +1,6 @@
 package com.dupeng.flink.sql;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.utils.MultipleParameterTool;
 import org.apache.flink.connector.file.src.FileSource;
 import org.apache.flink.connector.file.src.reader.TextLineInputFormat;
@@ -26,16 +25,15 @@ import java.util.regex.Pattern;
 
 /**
  * @Auther: dupeng
- * @Date: 2023/09/22/09:12
+ * @Date: 2023/10/25/11:12
  * @Description:
  */
-public class ExecSQLFile5 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExecSQLFile5.class);
+public class ExecFlinkSqlFileV5 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExecFlinkSqlFileV5.class);
     private static final String versionString = "v2023-10-25";
     private static final String sqlSeparatorRegex = ";\\s*$|;(?=\\s*\\n)|;(?=\\s*--)";
     private static final String keySetRegex = "(?<=[sS][eE][tT] ).*(?=\\s*\\=)";
     private static final String valueSetRegex = "(?<=\\=).*";
-
     private static final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     private static final StreamTableEnvironment tenv = StreamTableEnvironment.create(env);
 
@@ -43,7 +41,7 @@ public class ExecSQLFile5 {
         LOGGER.info(getStartString());
         final MultipleParameterTool params = MultipleParameterTool.fromArgs(args);
         if (!params.has("f") || params.get("f") == null) {
-            throw new IllegalArgumentException("No sql file specified.");
+            throw new IllegalArgumentException("No SQL file specified.");
         }
         String filePath = params.get("f");
         Collection<String> kv = params.getMultiParameter("d");
@@ -54,14 +52,16 @@ public class ExecSQLFile5 {
      * 使用Flink 的文件IO读取远程文件的内容，如果是本地文件则使用本地文件IO
      */
     private static String[] parseSqlFile(String filePath, Collection<String> kv) throws Exception {
+        String schema = filePath.split("://")[0];
         List<String> textLineList = new ArrayList<>();
         if (new File(filePath).exists()){
             LOGGER.info("将从本地文件系统读取文件...");
             textLineList = Files.readAllLines(Paths.get(filePath));
         }
         else {
-            LOGGER.info("将从远程文件系统读取文件...");
+            LOGGER.info("将从远程文件 '{}' 系统读取文件...", schema);
             // 必须设置并行度为1，否则读取的文件是乱序！
+            // 20231025 使用FileSource后不存在乱序问题
             // env.setParallelism(1);
             FileSource<String> source = FileSource
                     .forRecordStreamFormat(new TextLineInputFormat(), new Path(filePath))
@@ -116,7 +116,7 @@ public class ExecSQLFile5 {
                 jarsPathList.add(jarPath);
             }
         }
-        if (jarsPathList.size() > 0){
+        if (!jarsPathList.isEmpty()){
             tenv.getConfig().set("pipeline.jars", String.join(";", jarsPathList));
         }
 
@@ -143,9 +143,11 @@ public class ExecSQLFile5 {
                         if ("HIVE".equalsIgnoreCase(valueStr)){
                             tenv.getConfig().setSqlDialect(SqlDialect.HIVE);
                             LOGGER.warn("FLINK SQL 已切换为 \"HIVE\" 方言");
+                            // System.out.println("FLINK SQL 已切换为 \"HIVE\" 方言");
                         } else if ("DEFAULT".equalsIgnoreCase(valueStr)) {
                             tenv.getConfig().setSqlDialect(SqlDialect.DEFAULT);
                             LOGGER.warn("FLINK SQL 已切换为 \"DEFAULT\" 方言");
+                            // System.out.println("FLINK SQL 已切换为 \"DEFAULT\" 方言");
                         }
                     }
                     if (keyStr.toUpperCase().startsWith("VAR:")){

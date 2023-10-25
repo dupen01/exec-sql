@@ -118,7 +118,7 @@
                             <classifier>main</classifier>
                             <archive>
                                 <manifestEntries>
-                                    <program-class>com.dupeng.flink.sql.ExecSQLFile5</program-class>
+                                    <program-class>com.dupeng.flink.sql.ExecFlinkSqlFileV5</program-class>
                                 </manifestEntries>
                             </archive>
                             <includes>
@@ -129,8 +129,6 @@
                         </configuration>
                     </execution>
                 </executions>
-
-
             </plugin>
         </plugins>
     </build>
