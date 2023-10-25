@@ -1,10 +1,9 @@
-package com.dupeng.flink.sql;
-
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.utils.MultipleParameterTool;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.StatementSet;
-import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
+import org.apache.flink.table.api.TableEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,11 +22,11 @@ import java.util.regex.Pattern;
  * 然而Flink官方已经计划废弃yarn-per-job模式，所以要想使用此程序来执行外部的sql文件，
  * 那么我推荐不要在sql文件内对执行环境进行配置，而在提交命令中配置。
  */
-public class ExecSQLFile3 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExecSQLFile3.class);
+public class ExecSQLFile2 {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExecSQLFile2.class);
 
     public static void main(String[] args) throws Exception {
-        LOGGER.info(getStartString());
+        LOGGER.info(getLog());
         final MultipleParameterTool params = MultipleParameterTool.fromArgs(args);
         if (!params.has("f") || params.get("f") == null) {
             throw new IllegalArgumentException("No sql file specified.");
@@ -67,12 +66,11 @@ public class ExecSQLFile3 {
                 sqlStatement.add(line);
             }
         }
-        return String.join("\n", sqlStatement).split(";\\s*$|;(?=\\s*\\n)|;(?=\\s*--)");
+        return String.join("\n", sqlStatement).split(";\\s*$|;(?=\\s*\\n)");
     }
 
     private static String[] parseSqlFile(String filePath, Map<String, String> kvMap) throws Exception {
         ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-        env.getConfiguration().setString("pipeline.name", "read-sql-from-file");
         // 必须设置并行度为1，否则读取的文件是乱序！
         env.setParallelism(1);
         List<String> collect;
@@ -102,31 +100,19 @@ public class ExecSQLFile3 {
     }
 
     private static void execSqlStmt(String[] sqlStmt){
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        StreamTableEnvironment tenv = StreamTableEnvironment.create(env);
+        Configuration config = new Configuration();
         ArrayList<String> jarsPathList = new ArrayList<>();
         for (String sql : sqlStmt) {
             sql = sql.trim();
             if (sql.toUpperCase().startsWith("ADD JAR")) {
                 sql = sql.replace("'", "");
                 Matcher jarPathMatcher = Pattern.compile("(?<=').*(?=')").matcher(sql);
-                String jarPath = null;
+                String jarPath = "";
                 if (jarPathMatcher.find()){
                     jarPath = jarPathMatcher.group().trim();
                 }
                 jarsPathList.add(jarPath);
-            }
-        }
-        if (jarsPathList.size() > 0){
-            tenv.getConfig().set("pipeline.jars", String.join(";", jarsPathList));
-        }
-
-        StatementSet statementSet = tenv.createStatementSet();
-        boolean statementSetFlag = false;
-        for (String sql : sqlStmt) {
-            sql = sql.trim();
-            LOGGER.warn("-------------- SQL STATEMENT -------------\n{}", sql);
-            if (sql.toUpperCase().startsWith("SET")) {
+            } else if (sql.toUpperCase().startsWith("SET")) {
                 sql = sql.replace("'", "");
                 Matcher key = Pattern.compile("(?<=[sS][eE][tT] ).*(?=\\s*\\=)").matcher(sql);
                 Matcher value = Pattern.compile("(?<=\\=).*").matcher(sql);
@@ -139,8 +125,27 @@ public class ExecSQLFile3 {
                     setValue = value.group().trim();
                 }
                 // 初始化config
-                tenv.getConfig().set(setKey, setValue);
+                config.setString(setKey, setValue);
                 // LOGGER.warn("key:{}, value:{}", setKey, setValue);
+            }
+        }
+        if (jarsPathList.size() > 0){
+            config.setString("pipeline.jars", String.join(";", jarsPathList));
+        }
+
+        // 根据config创建tenv执行环境
+        EnvironmentSettings settings = EnvironmentSettings.newInstance().inStreamingMode()
+                .withConfiguration(config)
+                .build();
+        TableEnvironment tenv = TableEnvironment.create(settings);
+
+        StatementSet statementSet = tenv.createStatementSet();
+        boolean statementSetFlag = false;
+        for (String sql : sqlStmt) {
+            sql = sql.trim();
+            LOGGER.warn("-------------- SQL STATEMENT -------------\n{}", sql);
+            if ("".equals(sql) || sql.toUpperCase().startsWith("SET") || sql.toUpperCase().startsWith("ADD")) {
+                continue;
             }
             else if (sql.toUpperCase().contains("INSERT")) {
                 statementSet.addInsertSql(sql);
@@ -154,7 +159,7 @@ public class ExecSQLFile3 {
         }
     }
 
-    private static String getStartString(){
+    private static String getLog(){
         return "\n" +
                 "                        __ _ _       _                _ \n" +
                 "   _____  _____  ___   / _| (_)_ __ | | __  ___  __ _| |\n" +

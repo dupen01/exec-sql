@@ -1,5 +1,3 @@
-package com.dupeng.flink.sql;
-
 import org.apache.flink.api.java.ExecutionEnvironment;
 import org.apache.flink.api.java.utils.MultipleParameterTool;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
