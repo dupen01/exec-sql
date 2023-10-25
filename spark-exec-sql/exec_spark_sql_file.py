@@ -88,4 +88,4 @@ if __name__ == '__main__':
     elif args.sql_text:
         exec_sql_text(parse_sql_text(args.sql_text, args.kv))
     else:
-        raise ValueError('SQL FILE NOT FOUND')
+        raise ValueError('SQL FILE NOT FOUND.')

@@ -77,11 +77,12 @@ select 'hello';
 所以应该避免在多行注释中使用分号`;`结尾。
 
 # 2. spark-exec
+是 `spark-sql` 脚本的增强版（原生脚本仅支持从本地 file:// 获取sql文件且只能使用`client`模式提交SQL作业）。
+
+本脚本支持从远程文件系统获取要执行的SQL文件，可以使用`cluster`模式提交作业。
 
 理论上可以支持spark所有支持的文件系统
-如 file://  hdfs://  s3:// s3a:// oss:// 等
-是 spark-sql 脚本的增强版（原生脚本仅支持从本地 file:// 获取sql文件且只能使用`client`模式）
-本脚本支持从远程文件系统获取要执行的SQL文件，可以使用`cluster`模式提交作业
+如 `file://`、`hdfs://`、`s3://`、`s3a://`、`oss://` 等。需要自行解决相关依赖。
 
 ## 2.1. 定义文本内的变量：
 使用 `set var:key = value ;`
@@ -101,7 +102,7 @@ select 1 as a;
 ```sql
 /*段内 
   注释*/
-select 2 as b /*可以在任;意位置*/; /*段内注释3*/
+select 2/*可以在任;意位置*/ as b ; /*段内注释3*/
 ```
 3. 支持嵌套的段内注释
 ```sql
@@ -119,5 +120,5 @@ SELECT 1 as c;
 -f hdfs://ns/some-sql.sql \
 -d dt=20231025 \
 --define a=hello-spark 
-
 ```
+
