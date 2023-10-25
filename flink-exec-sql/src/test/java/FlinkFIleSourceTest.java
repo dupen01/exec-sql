@@ -16,8 +16,6 @@ public class FlinkFIleSourceTest {
     private static final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
     private static final String filePath = "/Users/pengdu/IdeaProjects/personal-project/exec-sql/flink-exec-sql/src/main/resources/test2.sql";
     public static void main(String[] args) throws Exception {
-        // env.setParallelism(1);
-        List<String> textLineList = null;
         FileSource<String> source = FileSource
                 .forRecordStreamFormat(new TextLineInputFormat(), new Path(filePath))
                 .build();
@@ -27,7 +25,7 @@ public class FlinkFIleSourceTest {
                         WatermarkStrategy.noWatermarks(),
                         "sql-file-source")
                 .collectAsync();
-        env.execute();
+        env.execute("Read SQL File");
         while (stringCloseableIterator.hasNext()){
             System.out.println("---->");
             System.out.println(stringCloseableIterator.next());

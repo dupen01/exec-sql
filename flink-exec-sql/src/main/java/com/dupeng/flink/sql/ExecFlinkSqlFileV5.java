@@ -60,18 +60,16 @@ public class ExecFlinkSqlFileV5 {
         }
         else {
             LOGGER.info("将从远程文件 '{}' 系统读取文件...", schema);
-            // 必须设置并行度为1，否则读取的文件是乱序！
-            // 20231025 使用FileSource后不存在乱序问题
-            // env.setParallelism(1);
             FileSource<String> source = FileSource
                     .forRecordStreamFormat(new TextLineInputFormat(), new Path(filePath))
                     .build();
             CloseableIterator<String> stringCloseableIterator = env.fromSource(source, WatermarkStrategy.noWatermarks(), "sql-file-source")
                     .collectAsync();
-            env.execute();
+            env.execute("Read SQL File");
             while (stringCloseableIterator.hasNext()){
                 textLineList.add(stringCloseableIterator.next());
             }
+            env.close();
         }
         String sqlText = String.join("\n", textLineList);
         for (String line : textLineList) {
@@ -151,8 +149,6 @@ public class ExecFlinkSqlFileV5 {
                     if (keyStr.toUpperCase().startsWith("VAR:")){
                         continue;
                     }
-                    // 初始化config
-                    // LOGGER.warn("key:{}, value:{}", keyStr, valueStr);
                     tenv.getConfig().set(keyStr, valueStr);
                 }
             }

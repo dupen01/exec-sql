@@ -28,6 +28,15 @@
 -f hdfs://ns/path/to/sql-file.sql \
 -d dt=20231025 \
 --define a=hello-flink
+
+# 使用带main方法入口的jar包提交作业，不需指定-c main方法入口
+./bin/flink run \
+-Ds3.access-key=7HAP3WcpW6fq70bWbEJW \
+-Ds3.secret-key=YWG7hREHDsuXfj8IsEPG8CQP92iBSE4vlWQu9Xbj \
+-Ds3.endpoint=http://localhost:9000 \
+/path/to/flink-exec-sql-1.0-SNAPSHOT_*-main.jar \
+-f s3://bk-test/test.sql \
+-d x=20237788
 ```
 
 
