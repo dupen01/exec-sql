@@ -125,8 +125,6 @@ public class ExecFlinkSqlFileV5 {
         int sqlId = 0;
         for (String sql : sqlStmts) {
             sql = sql.replaceAll("--.*", "").trim();
-            // todo 删除多行段内注释
-            // sql = sql.replaceAll("^/\\*.*?\\*/$","");
             if (sql.isBlank()){
                 continue;
             }

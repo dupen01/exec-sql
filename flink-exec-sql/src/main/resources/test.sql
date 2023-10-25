@@ -1,4 +1,4 @@
-set var:a  = b; -- hie
+set var: a  = b; -- hie
 -- add jar '/sss.jar';
 set table.sql-dialect = default; -- 123
 set var:c  = b; -- hie
