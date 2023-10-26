@@ -1,7 +1,8 @@
 # 1. flink-exec
 
 ## 1.1 介绍
-一个简单的脚本：读取SQL文件并执行。
+一个简单的jar包：读取 Flink SQL 脚本并执行。
+
 支持在SQL文件内使用`${key}`来定义一个或多个变量，并在使用脚本时传参数`-d key1=value1 -d key2=value2`
 
 - 支持多条`add jar '/path/to/your-jar.jar';` 添加依赖包，用法同Flink SQL Client；
@@ -13,17 +14,17 @@
 
 ## 1.2 使用说明
 
-脚本使用方法，与提交Flink jar包作业一样。如：
+使用方法，与提交 Flink jar 包作业一致。如：
 ```shell
 ./bin/flink run \
--c com.dupeng.flink.sql.ExecFlinkSqlFileV5 \
+-c com.dupeng.flink.sql.ExecFlinkSqlFile \
 /path/to/flink-exec-sql-1.0-SNAPSHOT_*.jar \
 -f /path/to/sql-file.sql \
 -d dt=20231025 \
 --define a=hello-flink
 
 ./bin/flink run \
--c com.dupeng.flink.sql.ExecFlinkSqlFileV5 \
+-c com.dupeng.flink.sql.ExecFlinkSqlFile \
 /path/to/flink-exec-sql-1.0-SNAPSHOT_*.jar \
 -f hdfs://ns/path/to/sql-file.sql \
 -d dt=20231025 \
@@ -41,17 +42,20 @@
 
 
 
-可以在SQL文件内添加`SET`语句来配置Flink任务运行时的参数，如
+可以在SQL脚本内添加`SET`语句来配置Flink任务运行时的参数，如
 ```sql
+-- 配置运行时参数
 set 'parallelism.default' = '1';
 set 'execution.checkpointing.interval' =  '1min';
 set 'state.checkpoints.dir' = 'hdfs://ns1/ckps';
-
+-- 添加依赖包
 add jar '/path/to/some-jar.jar';
-
+-- 设置变量
 set var: a = b;
+-- 切换 Flink SQL 方言
 set table.sql-dialect = hive;
 
+-- 多条 insert 语句
 insert into t2
 select * from t1;
 

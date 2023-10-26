@@ -79,17 +79,6 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- <dependency> -->
-        <!--     <groupId>org.apache.hadoop</groupId> -->
-        <!--     <artifactId>hadoop-client</artifactId> -->
-        <!--     <version>3.3.4</version> -->
-        <!--     <scope>test</scope> -->
-        <!-- </dependency> -->
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-client-api</artifactId>
-            <version>3.3.4</version>
-        </dependency>
     </dependencies>
 
 
@@ -123,7 +112,7 @@
                             <classifier>main</classifier>
                             <archive>
                                 <manifestEntries>
-                                    <program-class>com.dupeng.flink.sql.ExecFlinkSqlFileV5</program-class>
+                                    <program-class>com.dupeng.flink.sql.ExecFlinkSqlFile</program-class>
                                 </manifestEntries>
                             </archive>
                             <includes>

@@ -28,8 +28,8 @@ import java.util.regex.Pattern;
  * @Date: 2023/10/25/11:12
  * @Description:
  */
-public class ExecFlinkSqlFileV5 {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExecFlinkSqlFileV5.class);
+public class ExecFlinkSqlFile {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExecFlinkSqlFile.class);
     private static final String versionString = "v2023-10-25";
     private static final String sqlSeparatorRegex = ";\\s*$|;(?=\\s*\\n)|;(?=\\s*--)";
     private static final String keySetRegex = "(?<=[sS][eE][tT] ).*(?=\\s*\\=)";
