@@ -48,7 +48,7 @@ def main():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="执行 SPARK SQL 作业")
     # group = parser.add_mutually_exclusive_group()
-    parser.add_argument("-e", dest='query', help='query that should be executed.')
+    parser.add_argument("--sql", "-e", dest='query', help='query that should be executed.')
     parser.add_argument('--define', '-d', dest='kv', action='append', help='设置sql文本内的变量值，如 -d A=B or --define A=B')
     args = parser.parse_args()
     main()

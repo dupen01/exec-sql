@@ -35,7 +35,7 @@ def get_conf_from_args():
             file_name = os.path.basename(args.exec_file).split('.')[0]
             app_name = '_'.join([file_name, td])
         elif args.query:
-            app_name = '"'+args.query[:10] + '"'
+            app_name = '"'+args.query.splitlines()[0] + '"'
         else:
             raise ValueError("SQL Statement or SQL file not set.")
     else:
@@ -79,7 +79,7 @@ def generate_submit_command(conf_dict: dict, text):
     submit_command = ' \\\n'.join([f"{spark_home}/bin/spark-submit",
                                    conf_str,
                                    f"\t{args.exec_path}",
-                                   "-e",
+                                   "\t--sql",
                                    f"\"{text}\""])
     return submit_command
 
