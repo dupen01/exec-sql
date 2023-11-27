@@ -35,7 +35,7 @@ def get_conf_from_args():
             file_name = os.path.basename(args.exec_file).split('.')[0]
             app_name = '_'.join([file_name, td])
         elif args.query:
-            app_name = '"'+args.query.splitlines()[0] + '"'
+            app_name = '"' + args.query.splitlines()[0] + '"'
         else:
             raise ValueError("SQL Statement or SQL file not set.")
     else:
@@ -59,9 +59,10 @@ def get_conf_from_args():
     return conf_dict
 
 
-def generate_submit_command(conf_dict: dict, text):
+def generate_submit_command(conf_dict: dict, text, init_sql):
     """
     根据conf_dict和text生成spark-submit提交命令
+    :param init_sql:
     :param conf_dict:
     :param text:
     :return: submit_command
@@ -76,11 +77,21 @@ def generate_submit_command(conf_dict: dict, text):
     for key, value in conf_dict.items():
         conf_list.append(f"\t--conf {key}={value}")
     conf_str = ' \\\n'.join(conf_list)
-    submit_command = ' \\\n'.join([f"{spark_home}/bin/spark-submit",
-                                   conf_str,
-                                   f"\t{args.exec_path}",
-                                   "\t--sql",
-                                   f"\"{text}\""])
+    if not args.exec_path:
+        exec_path_dir = os.path.dirname(os.path.abspath(__file__))
+        exec_path = os.path.join(exec_path_dir, 'exec_spark_sql.py')
+    else:
+        exec_path = args.exec_path
+    command_lst = [f"{spark_home}/bin/spark-submit",
+                   conf_str]
+    if args.verbose:
+        command_lst.append("\t--verbose")
+    command_lst.append(f"\t{exec_path}")
+    if init_sql:
+        command_lst.append(f'\t-i "{init_sql}"')
+    command_lst.append("\t--sql")
+    command_lst.append(f'"{text}"')
+    submit_command = ' \\\n'.join(command_lst)
     return submit_command
 
 
@@ -96,8 +107,12 @@ def main():
         text = args.query
     else:
         raise ValueError("SQL Statement or SQL file not set.")
+    if args.init_sql:
+        init_sql = get_text_from_file(args.init_sql)
+    else:
+        init_sql = None
     text_kv = add_kv_to_text(text, args.kv)
-    submit_command = generate_submit_command(conf_dict, text_kv)
+    submit_command = generate_submit_command(conf_dict, text_kv, init_sql)
     print("----------------> spark-submit command: \n" + submit_command)
     os.system(submit_command)
 
@@ -124,10 +139,14 @@ if __name__ == '__main__':
     parser.add_argument('--num-executors', dest='num_executor', default=1, help='Number of executors to launch (Default: 2).')
     parser.add_argument("--spark-home", '-S', dest='spark_home',
                         help='set SPARK_HOME path if Environment variable $SPARK_HOME not exists.')
-    parser.add_argument('-s', default='./exec_spark_sql.py', dest="exec_path", help='path to exec_spark_sql.py')
+    parser.add_argument('-x', dest="exec_path", help='path to exec_spark_sql.py')
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-f", dest='exec_file', help='script file that should be executed.')
     group.add_argument("-e", dest='query', help='query that should be executed.')
-    parser.add_argument('--define', '-d', dest='kv', action='append', help='设置sql文本内的变量值，如 -d A=B or --define A=B')
+    parser.add_argument('-i', dest='init_sql', help='Initialization SQL file')
+    parser.add_argument('--define', '-d', dest='kv', action='append', help='Variable substitution to apply to Hive commands. e.g. -d A=B or --define A=B')
+    parser.add_argument('--hivevar', dest='kv', action='append', help='Variable substitution to apply to Hive commands. e.g. -d A=B or --define A=B')
+    # parser.add_argument('--silent', '-S',  dest='silent', action='store_true', help='Silent mode in interactive shell')
+    parser.add_argument('--verbose', '-v', dest='verbose', action='store_true', help='Verbose mode (echo executed SQL to the console)')
     args = parser.parse_args()
     main()
