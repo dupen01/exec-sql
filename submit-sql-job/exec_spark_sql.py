@@ -19,19 +19,20 @@ def parse_sql_text(text) -> List[str]:
     return re.split(r';\s*$|;(?=\s*\n)|;(?=\s*--)', "\n".join(sql_stmts))
 
 
-# TODO 添加执行init sql
-def exec_init_sql(spark: SparkSession, init_sql):
-    pass
-
-
 def exec_spark_sql(spark: SparkSession, sql_stmts, init_sql):
     if init_sql:
         for sql in init_sql:
             sql = re.sub(r'--.*', '', sql).strip()
             sql = re.sub(r'^/\*.*?\*/$', '', sql, flags=re.M | re.S).strip()
-            print(f"-------------- [init-sql] -------------\n{sql}\n")
             if sql != '':
-                spark.sql(sql).show()
+                try:
+                    print(
+                        f"=============================== [INIT-SQL] ===============================\n{sql}\n"
+                        f"=============================== [INIT-SQL] ===============================")
+                    spark.sql(sql)
+                    print('OK')
+                except Exception:
+                    raise RuntimeError(f"Failed to initialize the SQL: '{sql}'.")
             else:
                 continue
     sql_id = 0
@@ -43,8 +44,8 @@ def exec_spark_sql(spark: SparkSession, sql_stmts, init_sql):
         else:
             sql_id += 1
             print(
-                f"-------------- [SQL-{sql_id} start] -------------\n{sql}\n"
-                f"-------------- [SQL-{sql_id}   end] -------------")
+                f"=============================== [SQL-{sql_id}] ===============================\n{sql}\n"
+                f"=============================== [SQL-{sql_id}] ===============================")
             spark.sql(sql).show()
     spark.stop()
 
@@ -67,7 +68,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="执行 SPARK SQL 作业")
     # group = parser.add_mutually_exclusive_group()
     parser.add_argument("--sql", "-e", dest='query', help='query that should be executed.')
-    parser.add_argument("-i", dest='init_sql', help='Initialization SQL script.')
-    parser.add_argument('--define', '-d', dest='kv', action='append', help='设置sql文本内的变量值，如 -d A=B or --define A=B')
+    parser.add_argument("--init", "-i", dest='init_sql', help='Initialization SQL script.')
+    parser.add_argument('--define', '-d', dest='kv', action='append',
+                        help='设置sql文本内的变量值，如 -d A=B or --define A=B')
     args = parser.parse_args()
     main()
