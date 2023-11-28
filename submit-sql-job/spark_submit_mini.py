@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s - %(message)s')
 
 
 def get_text_from_file(file_path):
@@ -27,10 +27,6 @@ def add_kv_to_text(text, kv):
 
 
 def get_conf_from_args():
-    """
-    从脚本参数获取 spark 任务运行配置
-    :return:
-    """
     conf_dict = {}
     conf_dict.setdefault("spark.master", args.master_url)
     conf_dict.setdefault("spark.submit.deployMode", args.deploy_mode)
@@ -65,13 +61,6 @@ def get_conf_from_args():
 
 
 def generate_submit_command(conf_dict: dict, text, init_sql):
-    """
-    根据conf_dict和text生成spark-submit提交命令
-    :param init_sql:
-    :param conf_dict:
-    :param text:
-    :return: submit_command
-    """
     master = conf_dict.get('spark.master')
     if os.environ.get('SPARK_HOME'):
         spark_home = os.environ.get('SPARK_HOME')
@@ -81,7 +70,7 @@ def generate_submit_command(conf_dict: dict, text, init_sql):
         raise EnvironmentError("$SPARK_HOME not found in the environment variables and args ('--spark-home' or '-S').")
     conf_list = []
     for key, value in conf_dict.items():
-        conf_list.append(f"\t--conf {key}={value}")
+        conf_list.append(f"  --conf {key}={value}")
     conf_str = ' \\\n'.join(conf_list)
     if not args.exec_path:
         exec_path_dir = os.path.dirname(os.path.abspath(__file__))
@@ -90,38 +79,40 @@ def generate_submit_command(conf_dict: dict, text, init_sql):
         exec_path = args.exec_path
     command_lst = [f"{spark_home}/bin/spark-submit", conf_str]
     if args.verbose:
-        command_lst.append("\t--verbose")
+        command_lst.append("  --verbose")
     if args.queue and master.upper() == 'YARN':
-        command_lst.append(f"\t--queue {args.queue}")
+        command_lst.append(f"  --queue {args.queue}")
     if args.user:
-        command_lst.append(f"\t--proxy-user {args.user}")
-    command_lst.append(f"\t{exec_path}")
+        command_lst.append(f"  --proxy-user {args.user}")
+    command_lst.append(f"  {exec_path}")
     if init_sql:
-        command_lst.append(f'\t--init "{init_sql}"')
-    command_lst.append("\t--sql")
+        command_lst.append(f'  --init "{init_sql}"')
+    command_lst.append("  --sql")
     command_lst.append(f'"{text}"')
     submit_command = ' \\\n'.join(command_lst)
     return submit_command
 
 
-def handle_command(submit_command):
-    pass
-
-
 def run_command(command):
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    output_log = []
     while True:
         output = process.stdout.readline()
         if output == '' and process.poll() is not None:
             break
         if output:
             logging.info(output.strip())
+            output_log.append(output.strip())
     return_code = process.poll()
     if return_code != 0:
-        logging.error(f"Spark task failed with return_code: {return_code}")
+        logging.error(f"Spark task failed with return code: {return_code}")
         sys.exit(1)
     else:
-        logging.info(f"return_code: {return_code}")
+        logging.info(f"return code: {return_code}")
+    return str(output_log)
+
+
+def handle_log(log):
     pass
 
 
@@ -139,14 +130,14 @@ def main():
         init_sql = None
     text_kv = add_kv_to_text(text, args.kv)
     submit_command = generate_submit_command(conf_dict, text_kv, init_sql)
-    print("----------------> spark-submit command: \n" + submit_command)
+    logging.info("Submit Spark SQL:\n" + submit_command)
     # os.system(submit_command)
     run_command(submit_command)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        usage="python spark_submit_mini.py [spark-submit options] [-S SPARK_HOME] [-x exec_spark_sql.py] [-f SQL file]")
+        usage="python %(prog)s [spark-submit options] [-S SPARK_HOME] [-x exec_spark_sql.py] [-f SQL file]")
     parser.add_argument('--master', dest='master_url', default='local',
                         help='spark://host:port, mesos://host:port, yarn, k8s://https://host:port, or local (Default: local[*]).')
     parser.add_argument('--deploy-mode', default='client', dest='deploy_mode',
@@ -156,7 +147,8 @@ if __name__ == '__main__':
                         help='Comma-separated list of jars to include on the driver and executor classpaths.')
     parser.add_argument('--py-files', dest='py_files',
                         help='Comma-separated list of .zip, .egg, or .py files to place on the PYTHONPATH for Python apps.')
-    parser.add_argument('--conf', dest='spark_conf', action='append', help='Arbitrary Spark configuration property.')
+    parser.add_argument('--conf', '-c', dest='spark_conf', action='append',
+                        help='Arbitrary Spark configuration property.')
     parser.add_argument('--driver-memory', dest='driver_mem', default='1g',
                         help='Memory for driver (e.g. 1000M, 2G) (Default: 1g).')
     parser.add_argument('--driver-cores', dest='driver_core', default=1,
