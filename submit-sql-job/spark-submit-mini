@@ -1,3 +1,0 @@
-#! /usr/bin/bash
-
-exec ./spark_submit_mini.py "$@"

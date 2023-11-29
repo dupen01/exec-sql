@@ -17,7 +17,7 @@ def get_text_from_file(file_path):
         raise FileNotFoundError(f"SQL FILE '{file_path}' NOT FOUND.")
 
 
-def add_kv_to_text(text, kv):
+def add_kv_to_text(text, kv=None):
     if kv:
         for i in kv:
             var_key = i.split('=')[0]
@@ -26,70 +26,57 @@ def add_kv_to_text(text, kv):
     return text
 
 
-def get_conf_from_args():
-    conf_dict = {}
-    conf_dict.setdefault("spark.master", args.master_url)
-    conf_dict.setdefault("spark.submit.deployMode", args.deploy_mode)
-    if not args.name:
-        td = datetime.date.today().strftime('%Y%m%d')
-        if args.exec_file:
-            file_name = os.path.basename(args.exec_file).split('.')[0]
-            app_name = '_'.join([file_name, td])
-        elif args.query:
-            app_name = '"' + args.query.splitlines()[0] + '"'
-        else:
-            raise ValueError("SQL Statement or SQL file not set.")
-    else:
-        app_name = args.name
-    conf_dict.setdefault("spark.app.name", app_name)
-    conf_dict.setdefault("spark.jars", args.jars)
-    conf_dict.setdefault("spark.submit.pyFiles", args.py_files)
-    conf_dict.setdefault("spark.driver.memory", args.driver_mem)
-    conf_dict.setdefault("spark.driver.cores", args.driver_core)
-    conf_dict.setdefault("spark.executor.memory", args.executor_mem)
-    conf_dict.setdefault("spark.executor.cores", args.executor_core)
-    conf_dict.setdefault("spark.executor.instances", args.num_executor)
-    if args.spark_conf:
-        for conf in args.spark_conf:
-            conf_key = conf.split('=')[0]
-            conf_value = conf.split('=')[1]
-            conf_dict.setdefault(conf_key, conf_value)
-    for key in list(conf_dict.keys()):
-        if not conf_dict[key]:
-            del conf_dict[key]
-    return conf_dict
-
-
-def generate_submit_command(conf_dict: dict, text, init_sql):
-    master = conf_dict.get('spark.master')
+def generate_submit_command(exec_sql, init_sql=None):
     if os.environ.get('SPARK_HOME'):
         spark_home = os.environ.get('SPARK_HOME')
     elif args.spark_home:
         spark_home = args.spark_home
     else:
-        raise EnvironmentError("$SPARK_HOME not found in the environment variables and args ('--spark-home' or '-S').")
-    conf_list = []
-    for key, value in conf_dict.items():
-        conf_list.append(f"  --conf {key}={value}")
-    conf_str = ' \\\n'.join(conf_list)
+        raise EnvironmentError(
+            "$SPARK_HOME not found in the environment variables nor in the parameters ('--spark-home' or '-S').")
+    command_lst = [f"{spark_home}/bin/spark-submit"]
+    command_lst.append(f'--master {args.master_url}')
+    command_lst.append(f'--deploy-mode {args.deploy_mode}')
+    if not args.name:
+        td = datetime.date.today().strftime('%Y%m%d')
+        if args.exec_file:
+            file_name = os.path.basename(args.exec_file).split('.')[0]
+            app_name = '_'.join([file_name, td])
+        else:
+            app_name = '"' + args.query.splitlines()[0] + '"'
+    else:
+        app_name = args.name
+    command_lst.append(f'--name {app_name}')
+    if args.jars:
+        command_lst.append(f'--jars {args.jars}')
+    if args.py_files:
+        command_lst.append(f'--py-files {args.py_files}')
+    command_lst.append(f'--driver-memory {args.driver_mem}')
+    command_lst.append(f'--driver-cores {args.driver_core}')
+    command_lst.append(f'--executor-memory {args.executor_mem}')
+    if args.executor_core:
+        command_lst.append(f'--executor-cores {args.executor_core}')
+    command_lst.append(f'--num-executors {args.num_executor}')
+    if args.spark_conf:
+        for conf in args.spark_conf:
+            command_lst.append(f'--conf {conf}')
+    if args.verbose:
+        command_lst.append('--verbose')
+    if args.queue and args.master_url.upper() == 'YARN':
+        command_lst.append(f'--queue {args.queue}')
+    command_lst.append(f'--proxy-user {args.user}')
     if not args.exec_path:
         exec_path_dir = os.path.dirname(os.path.abspath(__file__))
         exec_path = os.path.join(exec_path_dir, 'exec_spark_sql.py')
     else:
         exec_path = args.exec_path
-    command_lst = [f"{spark_home}/bin/spark-submit", conf_str]
-    if args.verbose:
-        command_lst.append("  --verbose")
-    if args.queue and master.upper() == 'YARN':
-        command_lst.append(f"  --queue {args.queue}")
-    if args.user:
-        command_lst.append(f"  --proxy-user {args.user}")
-    command_lst.append(f"  {exec_path}")
+    command_lst.append(exec_path)
     if init_sql:
-        command_lst.append(f'  --init "{init_sql}"')
-    command_lst.append("  --sql")
-    command_lst.append(f'"{text}"')
-    submit_command = ' \\\n'.join(command_lst)
+        command_lst.append('--init')
+        command_lst.append(f'"{init_sql}"')
+    command_lst.append('--sql')
+    command_lst.append(f'"{exec_sql}"')
+    submit_command = ' \\\n  '.join(command_lst)
     return submit_command
 
 
@@ -105,7 +92,7 @@ def run_command(command):
             output_log.append(output.strip())
     return_code = process.poll()
     if return_code != 0:
-        logging.error(f"Spark task failed with return code: {return_code}")
+        logging.error(f"Spark job failed with return code: {return_code}")
         sys.exit(1)
     else:
         logging.info(f"return code: {return_code}")
@@ -117,21 +104,17 @@ def handle_log(log):
 
 
 def main():
-    conf_dict = get_conf_from_args()
     if args.exec_file:
-        text = get_text_from_file(args.exec_file)
-    elif args.query:
-        text = args.query
+        exec_sql = get_text_from_file(args.exec_file)
     else:
-        raise ValueError("SQL Statement or SQL file not set.")
+        exec_sql = args.query
     if args.init_sql:
         init_sql = get_text_from_file(args.init_sql)
     else:
         init_sql = None
-    text_kv = add_kv_to_text(text, args.kv)
-    submit_command = generate_submit_command(conf_dict, text_kv, init_sql)
-    logging.info("Submit Spark SQL:\n" + submit_command)
-    # os.system(submit_command)
+    exec_sql_kv = add_kv_to_text(exec_sql, args.kv)
+    submit_command = generate_submit_command(exec_sql_kv, init_sql)
+    logging.info("Submit Spark SQL job:\n" + submit_command)
     run_command(submit_command)
 
 
@@ -166,7 +149,7 @@ if __name__ == '__main__':
     parser.add_argument("--spark-home", '-S', dest='spark_home',
                         help='set SPARK_HOME path if Environment variable $SPARK_HOME not exists.')
     parser.add_argument('-x', dest="exec_path", help='path to exec_spark_sql.py')
-    group = parser.add_mutually_exclusive_group()
+    group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-f", dest='exec_file', help='script file that should be executed.')
     group.add_argument("-e", dest='query', help='query that should be executed.')
     parser.add_argument('-i', dest='init_sql', help='Initialization SQL file')
