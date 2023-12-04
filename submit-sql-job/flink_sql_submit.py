@@ -1,10 +1,7 @@
 import argparse
-import logging
 import os
 import subprocess
 import sys
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s - %(message)s')
 
 
 def get_text_from_file(file_path):
@@ -42,7 +39,7 @@ def generate_submit_command(exec_sql, init_sql=None):
     if args.classpath:
         command_lst.append(f'--classpath {args.classpath}')
     if args.detached:
-        command_lst.append(f'--detached')
+        command_lst.append('--detached')
     if args.parallelism:
         command_lst.append(f'--parallelism {args.parallelism}')
     if args.restoreMode:
@@ -74,14 +71,14 @@ def run_command(command):
         if output == '' and process.poll() is not None:
             break
         if output:
-            logging.info(output.strip())
-            output_log.append(output.strip())
+            print(output.replace('\n', ''))
+            output_log.append(output.replace('\n', ''))
     return_code = process.poll()
     if return_code != 0:
-        logging.error(f"Flink job failed with return code: {return_code}")
+        print(f"Flink job failed with return code: {return_code}")
         sys.exit(1)
     else:
-        logging.info(f"return code: {return_code}")
+        print(f"return code: {return_code}")
     return str(output_log)
 
 
@@ -96,12 +93,12 @@ def main():
         init_sql = None
     exec_sql_kv = add_kv_to_text(exec_sql, args.kv)
     submit_command = generate_submit_command(exec_sql_kv, init_sql)
-    logging.info("Submit Flink SQL job:\n" + submit_command)
+    print("Submit Flink SQL job:\n" + submit_command)
     run_command(submit_command)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(usage='python %(prog)s <action> [flink-options] [-F|--flink-home]')
+    parser = argparse.ArgumentParser()
     run_targets = ['remote', 'local', 'kubernetes-session', 'yarn-session', 'yarn-per-job']
     application_targets = ['kubernetes-application', 'yarn-application']
     public_parser = argparse.ArgumentParser(add_help=False)

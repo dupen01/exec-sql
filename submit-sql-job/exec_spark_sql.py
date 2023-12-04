@@ -31,10 +31,11 @@ def exec_spark_sql(spark: SparkSession, sql_stmts, init_sql):
             sql = re.sub(r'^/\*.*?\*/$', '', sql, flags=re.M | re.S).strip()
             if sql != '':
                 try:
-                    logging.info(f"\n=============================== [INIT-SQL] ===============================\n{sql}\n"
-                                 f"=============================== [INIT-SQL] ===============================")
+                    logging.info("=============================== [INIT-SQL] ===============================")
+                    logging.info(sql)
+                    logging.info("=============================== [INIT-SQL] ===============================")
                     spark.sql(sql)
-                    logging.info('\nOK')
+                    logging.info('OK')
                 except Exception:
                     raise RuntimeError(f"Failed to initialize the SQL: '{sql}'.")
             else:
@@ -47,9 +48,9 @@ def exec_spark_sql(spark: SparkSession, sql_stmts, init_sql):
             continue
         else:
             sql_id += 1
-            logging.info(
-                f"\n=============================== [SQL-{sql_id}] ===============================\n{sql}\n"
-                f"=============================== [SQL-{sql_id}] ===============================")
+            logging.info(f"=============================== [SQL-{sql_id}] ===============================")
+            logging.info(sql)
+            logging.info(f"=============================== [SQL-{sql_id}] ===============================")
             spark.sql(sql).show()
     spark.stop()
 

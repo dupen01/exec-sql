@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 import argparse
 import datetime
 import logging
@@ -88,8 +87,8 @@ def run_command(command):
         if output == '' and process.poll() is not None:
             break
         if output:
-            logging.info(output.strip())
-            output_log.append(output.strip())
+            logging.info(output.replace('\n', ''))
+            output_log.append(output.replace('\n', ''))
     return_code = process.poll()
     if return_code != 0:
         logging.error(f"Spark job failed with return code: {return_code}")

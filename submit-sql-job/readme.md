@@ -6,7 +6,7 @@
 
 
 ```shell
-python spark_submit_mini.py \
+python spark_sql_submit.py \
 --master yarn \
 --deploy-mode cluster \
 --name spark_submit_mini \

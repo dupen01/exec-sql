@@ -6,7 +6,7 @@
 
     <groupId>com.shutantech.flink</groupId>
     <artifactId>flink-exec-sql</artifactId>
-    <version>1.0-SNAPSHOT_1.17_v5_1025</version>
+    <version>1.17-2.0-20231203</version>
     <properties>
         <flink-version>1.17.1</flink-version>
         <log4j2-version>2.17.2</log4j2-version>
@@ -65,12 +65,12 @@
             <version>${flink-version}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-clients</artifactId>
-            <version>${flink-version}</version>
-            <scope>provided</scope>
-        </dependency>
+        <!-- <dependency> -->
+        <!--     <groupId>org.apache.flink</groupId> -->
+        <!--     <artifactId>flink-clients</artifactId> -->
+        <!--     <version>${flink-version}</version> -->
+        <!--     <scope>provided</scope> -->
+        <!-- </dependency> -->
 
         <dependency>
             <groupId>org.apache.flink</groupId>
@@ -112,7 +112,7 @@
                             <classifier>main</classifier>
                             <archive>
                                 <manifestEntries>
-                                    <program-class>com.dupeng.flink.sql.ExecFlinkSqlFile</program-class>
+                                    <program-class>com.dupeng.flink.sql.ExecFlinkSql</program-class>
                                 </manifestEntries>
                             </archive>
                             <includes>
