@@ -69,13 +69,14 @@ public class ExecFlinkSql {
         }
         if (!jarsPathList.isEmpty()){
             tEnv.getConfig().set("pipeline.jars", String.join(";", jarsPathList));
+            logger.info("pipeline.jars:{}", String.join(";", jarsPathList));
         }
     }
 
     private static void execFlinkSql(String[] sqlStatements, String[] initSqlStatements){
         StreamTableEnvironment tEnv = StreamTableEnvironment.create(StreamExecutionEnvironment.getExecutionEnvironment());
         // 加载配置文件中的jar包依赖
-        addJar(tEnv, sqlStatements);
+        // addJar(tEnv, sqlStatements);
         if(initSqlStatements != null){
             for (String sql : initSqlStatements) {
                 sql = sql.replaceAll("--.*", "").trim();

@@ -5,7 +5,19 @@ import os
 import subprocess
 import sys
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s - %(message)s')
+
+def get_logger(log_file=None):
+    _logger = logging.getLogger('test-name')
+    _logger.setLevel(level=logging.INFO)
+    formatter = logging.Formatter('%(asctime)s %(levelname)s - %(message)s')
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    if log_file:
+        file_handler = logging.FileHandler(log_file, mode='w')
+        file_handler.setFormatter(formatter)
+        _logger.addHandler(file_handler)
+    _logger.addHandler(console_handler)
+    return _logger
 
 
 def get_text_from_file(file_path):
@@ -26,6 +38,7 @@ def add_kv_to_text(text, kv=None):
 
 
 def generate_submit_command(exec_sql, init_sql=None):
+    DEFAULT_EXECUTE_SPARK_SQL_SCRIPT_NAME = "exec_spark_sql.py"
     if os.environ.get('SPARK_HOME'):
         spark_home = os.environ.get('SPARK_HOME')
     elif args.spark_home:
@@ -33,9 +46,9 @@ def generate_submit_command(exec_sql, init_sql=None):
     else:
         raise EnvironmentError(
             "$SPARK_HOME not found in the environment variables nor in the parameters ('--spark-home' or '-S').")
-    command_lst = [f"{spark_home}/bin/spark-submit"]
-    command_lst.append(f'--master {args.master_url}')
-    command_lst.append(f'--deploy-mode {args.deploy_mode}')
+    command_lst = [f"{spark_home}/bin/spark-submit",
+                   f'--master {args.master_url}',
+                   f'--deploy-mode {args.deploy_mode}']
     if not args.name:
         td = datetime.date.today().strftime('%Y%m%d')
         if args.exec_file:
@@ -63,10 +76,17 @@ def generate_submit_command(exec_sql, init_sql=None):
         command_lst.append('--verbose')
     if args.queue and args.master_url.upper() == 'YARN':
         command_lst.append(f'--queue {args.queue}')
-    command_lst.append(f'--proxy-user {args.user}')
+    if not args.user:
+        import getpass
+        user = getpass.getuser()
+    else:
+        user = args.user
+    command_lst.append(f'--proxy-user {user}')
     if not args.exec_path:
         exec_path_dir = os.path.dirname(os.path.abspath(__file__))
-        exec_path = os.path.join(exec_path_dir, 'exec_spark_sql.py')
+        exec_path = os.path.join(exec_path_dir, DEFAULT_EXECUTE_SPARK_SQL_SCRIPT_NAME)
+        if not os.path.exists(exec_path):
+            raise FileExistsError(f'exec_spark_sql.py not found in path:{exec_path_dir}')
     else:
         exec_path = args.exec_path
     command_lst.append(exec_path)
@@ -79,26 +99,32 @@ def generate_submit_command(exec_sql, init_sql=None):
     return submit_command
 
 
-def run_command(command):
+def run_command(command, logger):
+    logger.info("Submit Spark SQL job:\n" + command)
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    output_log = []
+    driver_pod_name = ''
+    namespace = ''
     while True:
         output = process.stdout.readline()
         if output == '' and process.poll() is not None:
             break
         if output:
-            logging.info(output.replace('\n', ''))
-            output_log.append(output.replace('\n', ''))
+            # 打印日志
+            logger.info(output.replace('\n', ''))
+            # 获取日志中的 pod 和 namespace 信息
+            if output.strip().startswith("pod name"):
+                driver_pod_name = output.strip().split(":")[1].strip()
+            if output.strip().startswith("namespace"):
+                namespace = output.strip().split(":")[1].strip()
     return_code = process.poll()
     if return_code != 0:
-        logging.error(f"Spark job failed with return code: {return_code}")
+        logger.error(f"Spark job failed with return code: {return_code}")
         sys.exit(1)
     else:
-        logging.info(f"return code: {return_code}")
-    return str(output_log)
+        logger.info(f"return code: {return_code}")
 
 
-def handle_log(log):
+def handle_log(console_log):
     pass
 
 
@@ -111,10 +137,12 @@ def main():
         init_sql = get_text_from_file(args.init_sql)
     else:
         init_sql = None
-    exec_sql_kv = add_kv_to_text(exec_sql, args.kv)
-    submit_command = generate_submit_command(exec_sql_kv, init_sql)
-    logging.info("Submit Spark SQL job:\n" + submit_command)
-    run_command(submit_command)
+    exec_sql_with_kv = add_kv_to_text(exec_sql, args.kv)
+    submit_command = generate_submit_command(exec_sql_with_kv, init_sql)
+    logger = get_logger(args.log_file)
+    if args.log_file:
+        logger.info(f"Runtime log file: {args.log_file}")
+    run_command(submit_command, logger)
 
 
 if __name__ == '__main__':
@@ -141,7 +169,7 @@ if __name__ == '__main__':
                         help='Number of cores used by each executor.')
     parser.add_argument('--num-executors', dest='num_executor', default=1,
                         help='Number of executors to launch (Default: 1).')
-    parser.add_argument('--proxy-user', dest='user', default='default',
+    parser.add_argument('--proxy-user', dest='user',
                         help='User to impersonate when submitting the application. (Default: "default").')
     parser.add_argument('--queue', dest='queue', default='default',
                         help='The YARN queue to submit to (Default: "default").')
@@ -152,6 +180,7 @@ if __name__ == '__main__':
     group.add_argument("-f", dest='exec_file', help='script file that should be executed.')
     group.add_argument("-e", dest='query', help='query that should be executed.')
     parser.add_argument('-i', dest='init_sql', help='Initialization SQL file')
+    parser.add_argument('--log-file', '-lf', dest='log_file', help='log file path')
     parser.add_argument('--define', '-d', dest='kv', action='append',
                         help='Variable substitution to apply to Hive commands. e.g. -d A=B or --define A=B')
     parser.add_argument('--hivevar', dest='kv', action='append',

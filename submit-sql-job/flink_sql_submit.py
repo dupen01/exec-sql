@@ -99,7 +99,7 @@ def main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    run_targets = ['remote', 'local', 'kubernetes-session', 'yarn-session', 'yarn-per-job']
+    run_targets = ['remote', 'kubernetes-session', 'yarn-session', 'yarn-per-job', 'local']
     application_targets = ['kubernetes-application', 'yarn-application']
     public_parser = argparse.ArgumentParser(add_help=False)
     public_parser.add_argument('--class', '-c', dest='class_name', help='')
@@ -114,7 +114,7 @@ if __name__ == '__main__':
                                help='')
     public_parser.add_argument('-D', dest='properties', action='append', help='')
     public_parser.add_argument('--flink-home', '-F', dest='flink_home')
-    public_parser.add_argument('-j', dest="job_jar", required=True, help='path to job jar')
+    public_parser.add_argument('-x', dest="job_jar", required=True, help='path to job jar')
     group = public_parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-f", dest='exec_file', help='script file that should be executed.')
     group.add_argument("-e", dest='query', help='query that should be executed.')
