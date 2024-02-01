@@ -31,8 +31,10 @@ select now(); select 123; select 456
 
 
 # sql_script = """
-# s 123;s 4;-- ab;
-# s 5
+# select 123;select 4; -- ab;
+# select
+# *
+# from t ;
 # """
 
 
@@ -60,14 +62,15 @@ def replace_variable(variable_list: List[tuple], line: str):
 
 def split_sql_script_to_statements(sql_script: str) -> List[str]:
     sql_list = []
-    variable_list = []
+    # variable_list = []
     # 嵌套注释的层级数
     multi_comment_level = 0
+    prefix = ""
     for line in sql_script.splitlines():
         # update variable_list
-        line = get_variable_from_line(variable_list, line)
+        # line = get_variable_from_line(variable_list, line)
         # update line with variable_list
-        line = replace_variable(variable_list, line)
+        # line = replace_variable(variable_list, line)
         # 标记是否以双引号结尾
         has_terminated_double_quote = True
         # 标记是否以单引号结尾
@@ -82,6 +85,8 @@ def split_sql_script_to_statements(sql_script: str) -> List[str]:
         was_pre_star = False
         last_semi_index = 0
         index = 0
+        if len(prefix) > 0:
+            prefix += "\n"
         # for index in range(len(line)):
         for char in line:
             # match list(line)[index]:
@@ -120,20 +125,24 @@ def split_sql_script_to_statements(sql_script: str) -> List[str]:
                             has_terminated_single_quote and
                             not is_single_line_comment and
                             multi_comment_level == 0):
-                        sql_list.append(line[last_semi_index:index + 1])
+                        # sql_list.append(line[last_semi_index:index + 1])
+                        sql_list.append(prefix + line[last_semi_index:index])
+                        prefix = ""
                         last_semi_index = index + 1
-                    else:
-                        line = line + " "
+                    # else:
+                        # line = line + " "
                 case _:
                     was_pre_dash = False
                     was_pre_slash = False
                     was_pre_star = False
             index += 1
         if last_semi_index != index or len(line) == 0:
-            sql_list.append(line[last_semi_index:])
+            # sql_list.append(line[last_semi_index:])
+            prefix = prefix + line[last_semi_index:]
     assert multi_comment_level == 0, (f"The number of nested levels of sql multi-line comments is not equal to 0: "
                                       f"{multi_comment_level}")
-    return "\n".join(sql_list).split(";\n")
+    # return "\n".join(sql_list).split(";\n")
+    return sql_list
 
 
 sql_statement = split_sql_script_to_statements(sql_script)

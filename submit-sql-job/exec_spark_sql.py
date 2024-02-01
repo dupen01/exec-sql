@@ -51,16 +51,12 @@ def __replace_variable(variable_list: List[tuple], line: str):
 
 def split_sql_script_to_statements(sql_script: str) -> List[str]:
     sql_list = []
-    variable_list = []
     # 嵌套注释的层级数
     multi_comment_level = 0
+    prefix = ""
     for line in sql_script.splitlines():
         # if line.strip().startswith('--'):
         line = line if not line.strip().startswith('--') else ''
-        # update variable_list
-        # line = __get_variable_from_line(variable_list, line)
-        # update line with variable_list
-        # line = __replace_variable(variable_list, line)
         # 标记是否以双引号结尾
         has_terminated_double_quote = True
         # 标记是否以单引号结尾
@@ -75,9 +71,9 @@ def split_sql_script_to_statements(sql_script: str) -> List[str]:
         was_pre_star = False
         last_semi_index = 0
         index = 0
-        # for index in range(len(line)):
+        if len(prefix) > 0:
+            prefix += "\n"
         for char in line:
-            # match list(line)[index]:
             match char:
                 case "'":
                     if has_terminated_double_quote:
@@ -112,20 +108,20 @@ def split_sql_script_to_statements(sql_script: str) -> List[str]:
                             has_terminated_single_quote and
                             not is_single_line_comment and
                             multi_comment_level == 0):
-                        sql_list.append(line[last_semi_index:index + 1])
+                        sql_stmt = prefix + line[last_semi_index:index]
+                        sql_list.append(sql_stmt)
+                        prefix = ""
                         last_semi_index = index + 1
-                    else:
-                        line = line + " "
                 case _:
                     was_pre_dash = False
                     was_pre_slash = False
                     was_pre_star = False
             index += 1
         if last_semi_index != index or len(line) == 0:
-            sql_list.append(line[last_semi_index:])
+            prefix = prefix + line[last_semi_index:]
     assert multi_comment_level == 0, (f"The number of nested levels of sql multi-line comments is not equal to 0: "
                                       f"{multi_comment_level}")
-    return "\n".join(sql_list).split(";\n")
+    return sql_list
 
 
 def exec_spark_sql(spark: SparkSession, sql_stmts, init_sql):
@@ -146,7 +142,7 @@ def exec_spark_sql(spark: SparkSession, sql_stmts, init_sql):
     for sql in sql_stmts:
         if len(sql.strip()) > 0:
             sql_id += 1
-            logging.info(f"sql_id-{sql_id}: {sql}")
+            logging.info(f"sql_id-{sql_id} ->\n{sql}")
             try:
                 spark.sql(sql).show()
             except Exception:
@@ -171,7 +167,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="执行 SPARK SQL 作业")
     parser.add_argument("--sql", "-e", dest='query', help='query that should be executed.')
     parser.add_argument("--init", "-i", dest='init_sql', help='Initialization SQL script.')
-    parser.add_argument('--define', '-d', dest='kv', action='append',
-                        help='设置sql文本内的变量值，如 -d A=B or --define A=B')
+    # parser.add_argument('--define', '-d', dest='kv', action='append',
+    #                     help='设置sql文本内的变量值，如 -d A=B or --define A=B')
     args = parser.parse_args()
     main()
