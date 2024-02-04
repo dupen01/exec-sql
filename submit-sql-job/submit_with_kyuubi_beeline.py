@@ -12,7 +12,25 @@ jdbc:hive2://172.20.3.16:10009;#k1=v1;k2=v2
 """
 import argparse
 import datetime
+import logging
 import os
+
+
+def get_logger(log_file=None):
+    _logger = logging.getLogger('test-name')
+    _logger.setLevel(level=logging.INFO)
+    formatter = logging.Formatter('%(asctime)s %(levelname)s - %(message)s')
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    if log_file:
+        file_handler = logging.FileHandler(log_file, mode='w')
+        file_handler.setFormatter(formatter)
+        _logger.addHandler(file_handler)
+    _logger.addHandler(console_handler)
+    return _logger
+
+
+logger = get_logger()
 
 
 def generate_beeline_command(username, password, sql_script, jdbc_url):
@@ -27,55 +45,87 @@ def generate_beeline_command(username, password, sql_script, jdbc_url):
     return beeline_command
 
 
-
 def get_jdbc_url_from_properties(host, port, spark_properties: list = None):
+    """
+    jdbc:hive2://172.20.3.16:10009/;#kyuubi.engine.share.level=CONNECTION;spark.master=local
+    """
     jdbc_prefix = "jdbc:hive2://"
+    jdbc_suffix = '/;#'
     jdbc_url = jdbc_prefix + host + ":" + str(port)
     if spark_properties:
         properties_str = ";".join(spark_properties)
-        return jdbc_url + "/;" + properties_str
+        return jdbc_url + jdbc_suffix + properties_str
     return jdbc_url
 
 
-def get_spark_properties_from_args():
-    spark_properties = []
-    if args.master_url:
-        spark_properties.append(f"spark.master={args.master_url}")
-    if args.deploy_mode:
-        spark_properties.append(f"spark.submit.deployMode={args.deploy_mode}")
+def get_spark_configurations_from_args():
+    spark_configurations = []
+    share_level = args.share_level.upper()
+    if share_level:
+        spark_configurations.append(f"kyuubi.engine.share.level={share_level}")
+    spark_configurations.append(f"spark.master={args.master_url}")
+    spark_configurations.append(f"spark.submit.deployMode={args.deploy_mode}")
     if args.jars:
-        spark_properties.append(f'spark.jars={args.jars}')
+        spark_configurations.append(f'spark.jars={args.jars}')
     if args.py_files:
-        spark_properties.append(f'spark.submit.pyFiles={args.py_files}')
-    spark_properties.append(f'spark.driver.memory={args.driver_mem}')
-    spark_properties.append(f'spark.driver.cores={args.driver_core}')
-    spark_properties.append(f'spark.executor.memory={args.executor_mem}')
+        spark_configurations.append(f'spark.submit.pyFiles={args.py_files}')
+    spark_configurations.append(f'spark.driver.memory={args.driver_mem}')
+    spark_configurations.append(f'spark.driver.cores={args.driver_core}')
+    spark_configurations.append(f'spark.executor.memory={args.executor_mem}')
     if args.executor_core:
-        spark_properties.append(f'spark.executor.cores={args.executor_core}')
-    spark_properties.append(f'spark.executor.instances={args.num_executor}')
+        spark_configurations.append(f'spark.executor.cores={args.executor_core}')
+    spark_configurations.append(f'spark.executor.instances={args.num_executor}')
     if args.spark_conf:
         for conf in args.spark_conf:
-            spark_properties.append(conf)
+            spark_configurations.append(conf)
     if args.master_url.upper() == 'YARN':
-        spark_properties.append(f'spark.yarn.queue={args.queue}')
-    return spark_properties
+        spark_configurations.append(f'spark.yarn.queue={args.queue}')
+    return spark_configurations
+
+
+def show_properties(spark_properties: list):
+    for conf in spark_properties:
+        key = conf.split('=')[0]
+        value = conf.split('=')[1]
+        logger.info(f"{'-' * 20} {key}:{value}")
+    return
+
+
+def hide_jdbc_password(beeline_command: str):
+    command_lst = []
+    for line in beeline_command.splitlines():
+        if line.startswith('-p'):
+            replaced_line = "-p ****** \\"
+            command_lst.append(replaced_line)
+        else:
+            command_lst.append(line)
+    return "\n".join(command_lst)
+
+
 
 
 def main():
     host = "172.20.3.16"
     port = 10009
-    spark_properties = get_spark_properties_from_args()
-    jdbc_url = get_jdbc_url_from_properties(host, port, spark_properties)
+    spark_configurations = get_spark_configurations_from_args()
+    show_properties(spark_configurations)
+    jdbc_url = get_jdbc_url_from_properties(host, port, spark_configurations)
     username = args.username
     password = args.password
-    sql_script = args.exec_file
+    if os.path.exists(args.exec_file):
+        sql_script = os.path.abspath(args.exec_file)
+    else:
+        raise FileNotFoundError(f"SQL FILE '{args.exec_file}' NOT FOUND.")
     beeline_command = generate_beeline_command(username, password, sql_script, jdbc_url)
-    print(beeline_command)
+    beeline_command_out = hide_jdbc_password(beeline_command)
+    logger.info(f"Launching Kyuubi Beeline command ->\n{beeline_command_out}")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         usage="python %(prog)s [spark-submit options] ...")
+    parser.add_argument('--engine-share-level', '-esl', dest='share_level',
+                        choices=['connection', 'user', 'group', 'server'], help='kyuubi.engine.share.level')
     parser.add_argument('--master', dest='master_url', default='local',
                         help='spark://host:port, mesos://host:port, yarn, k8s://https://host:port, or local (Default: local[*]).')
     parser.add_argument('--deploy-mode', default='client', dest='deploy_mode',
@@ -105,6 +155,7 @@ if __name__ == '__main__':
     group.add_argument("-f", dest='exec_file', help='script file that should be executed.')
     group.add_argument("-e", dest='query', help='query that should be executed.')
     parser.add_argument('-i', dest='init_sql', help='Initialization SQL file')
+
     parser.add_argument('-n', dest='username', required=True, help='the username to connect as')
     parser.add_argument('-p', dest='password', required=True, help='the password to connect as')
     parser.add_argument('--log-file', '-lf', dest='log_file', help='log file path')
