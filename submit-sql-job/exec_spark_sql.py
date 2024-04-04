@@ -2,8 +2,11 @@ import argparse
 import logging
 import re
 from typing import List
+import datetime
 
 from pyspark.sql import SparkSession
+from pyspark.sql.session import SparkContext
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(filename)s - %(message)s')
 
@@ -124,9 +127,32 @@ def split_sql_script_to_statements(sql_script: str) -> List[str]:
     return sql_list
 
 
+def get_application_info(sc: SparkContext):
+    spark_conf = sc.getConf()
+    driver_cores = spark_conf.get("spark.driver.cores") if spark_conf.get("spark.driver.cores") else 1
+    driver_memory = spark_conf.get("spark.driver.memory") if spark_conf.get("spark.driver.memory") else '1g'
+    executor_cores = spark_conf.get("spark.executor.cores") if spark_conf.get("spark.executor.cores") else 1
+    executor_memory = spark_conf.get("spark.executor.memory") if spark_conf.get("spark.executor.memory") else '1g'
+    executor_num = spark_conf.get("spark.executor.instances") if spark_conf.get("spark.executor.instances") else 1
+    start_time = datetime.datetime.fromtimestamp(sc.startTime/1000)[:-3]
+    application_info = f"""
+    Spark application Name: {sc.appName}
+          application ID: {sc.applicationId}
+          application web UI: {sc.uiWebUrl}
+          master: {sc.master}
+          version: {sc.version}
+          driver: [cpu:{driver_cores}, mem: {driver_memory}]
+          executor: [cpu:{executor_cores}, mem: {executor_memory}, num: {executor_num}]
+    User: {sc.sparkUser()}
+    Start time: {start_time}
+    """
+    return application_info
+
+
 def exec_spark_sql(spark: SparkSession, sql_stmts, init_sql):
-    app_id = spark.sparkContext.applicationId
-    logging.info(f"Application ID: {app_id}")
+    application_info = get_application_info(spark.sparkContext)
+    logging.info(application_info)
+
     if init_sql:
         for sql in init_sql:
             logging.info(f"INIT-SQL: {sql}")

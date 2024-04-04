@@ -1,0 +1,12 @@
+表名,表描述,字段名,字段描述,字段类型
+catalog.db.t1,t1表,id,id,int
+catalog.db.t1,t1表,name,姓名,string
+catalog.db.t1,t1表,age,年龄,int
+catalog.db.t2,t2表,id,id,int
+catalog.db.t2,t2表,name,姓名,string
+catalog.db.t2,t2表,age,年龄,"decimal(13,2)"
+catalog.db.t2,t2表,dept,部门,varchar(200)
+catalog.db.t3,,id,id,int
+catalog.db.t3,,name,姓名,string
+catalog.db.t3,,age,,int
+catalog.db.t3,,dept,,varchar(200)

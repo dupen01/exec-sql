@@ -58,7 +58,7 @@ def get_jdbc_url_from_properties(host, port, spark_properties: list = None):
     return jdbc_url
 
 
-def get_spark_configurations_from_args():
+def get_spark_configurations_from_args(args):
     spark_configurations = []
     share_level = args.share_level.upper()
     if share_level:
@@ -107,7 +107,7 @@ def hide_jdbc_password(beeline_command: str):
 def main():
     host = "172.20.3.16"
     port = 10009
-    spark_configurations = get_spark_configurations_from_args()
+    spark_configurations = get_spark_configurations_from_args(args)
     show_properties(spark_configurations)
     jdbc_url = get_jdbc_url_from_properties(host, port, spark_configurations)
     username = args.username

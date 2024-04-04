@@ -1,0 +1,19 @@
+{
+  "id" : 0,
+  "fields" : [ {
+    "id" : 0,
+    "name" : "pid",
+    "type" : "INT"
+  }, {
+    "id" : 1,
+    "name" : "age",
+    "type" : "INT"
+  } ],
+  "highestFieldId" : 1,
+  "partitionKeys" : [ ],
+  "primaryKeys" : [ ],
+  "options" : {
+    "owner" : "pengdu"
+  },
+  "timeMillis" : 1707113743268
+}
