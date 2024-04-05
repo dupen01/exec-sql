@@ -6,7 +6,7 @@ select
     current_timestamp
 ;
 
-select count(1) from paimon.hms.t1;
+-- select count(1) from paimon.hms.t1;
 
 -- 快照表
 -- select * from paimon.hms.`t1$snapshots`;

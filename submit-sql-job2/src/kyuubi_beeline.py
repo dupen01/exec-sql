@@ -4,7 +4,8 @@ import os
 import subprocess
 import sys
 
-BEELINE_PATH = "/Users/pengdu/Library/app/apache-kyuubi-1.9.0-bin/bin/beeline"
+# BEELINE_PATH = "/Users/dupeng/Library/app/apache-kyuubi-1.9.0-bin/bin/beeline"
+KYUUBI_HOME = "/Users/dupeng/Library/app/apache-kyuubi-1.9.0-bin"
 
 # get logger
 logger = logging.getLogger('test-name')
@@ -58,13 +59,23 @@ def generate_jdbc_url(host, port, confs: list = None):
 
 # 生成 kyuubi command
 def generate_beeline_command(username, password, sql_script, jdbc_url):
-    beeline_command_lst = [BEELINE_PATH,
-                           f'-u "{jdbc_url}"',
-                           f"-n {username}",
-                           f"-p {password}",
-                           f"-f {sql_script}"]
-    beeline_command = " \\\n".join(beeline_command_lst)
-    return beeline_command
+    if os.environ.get("KYUUBI_HOME"):
+        kyuubi_home = os.environ.get("KYUUBI_HOME")
+
+    else:
+        kyuubi_home = KYUUBI_HOME
+    if os.path.exists(kyuubi_home):
+        beeline_path = os.path.join(kyuubi_home, "bin/beeline")
+        beeline_command_lst = [beeline_path,
+                               f'-u "{jdbc_url}"',
+                               f"-n {username}",
+                               f"-p {password}",
+                               f"-f {sql_script}"]
+        beeline_command = " \\\n".join(beeline_command_lst)
+        return beeline_command
+    else:
+        raise FileNotFoundError(f"{kyuubi_home} not found")
+
 
 
 # 运行command
