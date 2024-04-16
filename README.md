@@ -1,4 +1,4 @@
 git test:
 
 master:commit1
-master:c2
+master:update2
